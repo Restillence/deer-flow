@@ -69,10 +69,15 @@ services:
     environment:
       - LANGGRAPH_UPSTREAM=${LANGGRAPH_UPSTREAM:-langgraph:2024}
       - LANGGRAPH_REWRITE=${LANGGRAPH_REWRITE:-/}
-    command: >
-      sh -c "envsubst '$$LANGGRAPH_UPSTREAM $$LANGGRAPH_REWRITE'
-      < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
-      && nginx -g 'daemon off;'"
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        envsubst '$$LANGGRAPH_UPSTREAM $$LANGGRAPH_REWRITE' \
+          < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        test -e /proc/net/if_inet6 || sed -i '/^[[:space:]]*listen[[:space:]]\+\[::\]:2026;/d' /etc/nginx/nginx.conf
+        exec nginx -g 'daemon off;'
     depends_on:
       - frontend
       - gateway
@@ -123,7 +128,7 @@ services:
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
         UV_INDEX_URL: ${UV_INDEX_URL:-https://pypi.org/simple}
     container_name: deer-flow-gateway
-    command: sh -c "cd backend && uv sync && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --reload --reload-include='*.yaml .env' > /app/logs/gateway.log 2>&1"
+    command: sh -c "{ cd backend && (uv sync || (echo '[startup] uv sync failed; recreating .venv and retrying once' && uv venv --allow-existing .venv && uv sync)) && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --reload --reload-include='*.yaml .env'; } > /app/logs/gateway.log 2>&1"
     volumes:
       - ../backend/:/app/backend/
       # Preserve the .venv built during Docker image build — mounting the full backend/
@@ -133,8 +138,10 @@ services:
       - ../extensions_config.json:/app/extensions_config.json
       - ../skills:/app/skills
       - ../logs:/app/logs
-      # Mount uv cache for faster dependency installation
-      - ~/.cache/uv:/root/.cache/uv
+      # Use a Docker-managed uv cache volume instead of a host bind mount.
+      # On macOS/Docker Desktop, uv may fail to create symlinks inside shared
+      # host directories, which causes startup-time `uv sync` to crash.
+      - gateway-uv-cache:/root/.cache/uv
       # DooD: same as gateway — AioSandboxProvider runs inside LangGraph process.
       - /var/run/docker.sock:/var/run/docker.sock
       # CLI auth directories for auto-auth (Claude Code + Codex CLI)
@@ -180,7 +187,7 @@ services:
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
         UV_INDEX_URL: ${UV_INDEX_URL:-https://pypi.org/simple}
     container_name: deer-flow-langgraph
-    command: sh -c "cd backend && uv sync && allow_blocking='' && if [ \"\${LANGGRAPH_ALLOW_BLOCKING:-0}\" = '1' ]; then allow_blocking='--allow-blocking'; fi && uv run langgraph dev --no-browser \${allow_blocking} --host 0.0.0.0 --port 2024 --n-jobs-per-worker \${LANGGRAPH_JOBS_PER_WORKER:-10} > /app/logs/langgraph.log 2>&1"
+    command: sh -c "cd backend && { (uv sync || (echo '[startup] uv sync failed; recreating .venv and retrying once' && uv venv --allow-existing .venv && uv sync)) && allow_blocking='' && if [ \"\${LANGGRAPH_ALLOW_BLOCKING:-0}\" = '1' ]; then allow_blocking='--allow-blocking'; fi && uv run langgraph dev --no-browser \${allow_blocking} --host 0.0.0.0 --port 2024 --n-jobs-per-worker \${LANGGRAPH_JOBS_PER_WORKER:-10}; } > /app/logs/langgraph.log 2>&1"
     volumes:
       - ../backend/:/app/backend/
       # Preserve the .venv built during Docker image build — mounting the full backend/
@@ -190,8 +197,10 @@ services:
       - ../extensions_config.json:/app/extensions_config.json
       - ../skills:/app/skills
       - ../logs:/app/logs
-      # Mount uv cache for faster dependency installation
-      - ~/.cache/uv:/root/.cache/uv
+      # Use a Docker-managed uv cache volume instead of a host bind mount.
+      # On macOS/Docker Desktop, uv may fail to create symlinks inside shared
+      # host directories, which causes startup-time `uv sync` to crash.
+      - langgraph-uv-cache:/root/.cache/uv
       # DooD: same as gateway — AioSandboxProvider runs inside LangGraph process.
       - /var/run/docker.sock:/var/run/docker.sock
       # CLI auth directories for auto-auth (Claude Code + Codex CLI)
@@ -228,6 +237,8 @@ volumes:
   # image build are not shadowed by the host backend/ directory mount.
   gateway-venv:
   langgraph-venv:
+  gateway-uv-cache:
+  langgraph-uv-cache:
 
 networks:
   deer-flow-dev:
