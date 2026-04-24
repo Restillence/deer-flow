@@ -84,7 +84,24 @@ def _create_summarization_middleware() -> DeerFlowSummarizationMiddleware | None
     if get_memory_config().enabled:
         hooks.append(memory_flush_hook)
 
-    return DeerFlowSummarizationMiddleware(**kwargs, before_summarization=hooks)
+    # The logic below relies on two assumptions holding true: this factory is
+    # the sole entry point for DeerFlowSummarizationMiddleware, and the runtime
+    # config is not expected to change after startup.
+    try:
+        skills_container_path = get_app_config().skills.container_path or "/mnt/skills"
+    except Exception:
+        logger.exception("Failed to resolve skills container path; falling back to default")
+        skills_container_path = "/mnt/skills"
+
+    return DeerFlowSummarizationMiddleware(
+        **kwargs,
+        skills_container_path=skills_container_path,
+        skill_file_read_tool_names=config.skill_file_read_tool_names,
+        before_summarization=hooks,
+        preserve_recent_skill_count=config.preserve_recent_skill_count,
+        preserve_recent_skill_tokens=config.preserve_recent_skill_tokens,
+        preserve_recent_skill_tokens_per_skill=config.preserve_recent_skill_tokens_per_skill,
+    )
 
 
 def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
@@ -333,6 +350,7 @@ def make_lead_agent(config: RunnableConfig):
             "is_plan_mode": is_plan_mode,
             "subagent_enabled": subagent_enabled,
             "tool_groups": agent_config.tool_groups if agent_config else None,
+            "available_skills": ["bootstrap"] if is_bootstrap else (agent_config.skills if agent_config and agent_config.skills is not None else None),
         }
     )
 
