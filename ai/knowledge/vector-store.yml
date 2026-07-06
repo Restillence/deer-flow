@@ -1,0 +1,29 @@
+version: 1
+name: content-ecosystem-ai-vector-index
+storage:
+  engine: sqlite
+  path: .ai/vector/index.sqlite
+  manifest: .ai/vector/manifest.json
+embedding:
+  mode: local-hashing
+  dimensions: 256
+  external_api_required: false
+sources:
+  - AGENTS.md
+  - .pr_agent.toml
+  - .github/workflows/ci.yml
+  - .github/workflows/pr_agent.yml
+  - .github/pull_request_template.md
+  - ai/router.yml
+  - ai/tool-registry.yml
+  - ai/contracts/code_change.yml
+  - ai/evals
+  - ai/knowledge
+  - docs/ai/wiki
+  - scripts/audit-log.py
+  - scripts/deploy-ai-stack.sh
+  - scripts/check-ai-stack.py
+  - scripts/build-ai-vector-index.py
+freshness:
+  builder: scripts/build-ai-vector-index.py
+  ci_check: python scripts/build-ai-vector-index.py --check

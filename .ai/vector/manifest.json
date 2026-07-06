@@ -1,0 +1,102 @@
+{
+  "name": "content-ecosystem-ai-vector-index",
+  "dimensions": 256,
+  "generated_at": "2026-07-04T19:21:03.811129+00:00",
+  "sources": [
+    {
+      "path": ".github/pull_request_template.md",
+      "sha256": "001208d279496a4a3475fe7df5c522555a8d6f55fd0b6627562fe0560e75259c",
+      "size": 3340
+    },
+    {
+      "path": ".github/workflows/pr_agent.yml",
+      "sha256": "fbd3ea2cbb0b1f5f3507ff983bae0e973f9265de0f8e7a2fa274299f80fd674b",
+      "size": 1073
+    },
+    {
+      "path": ".pr_agent.toml",
+      "sha256": "5fdbfe347a86cf5af80f6e52cf03aff6aa2bd03a389d461c489e578289e771ad",
+      "size": 1206
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "018e59e8cec5a344a1548b3ce2cb3d36df3dbbbf697082542afbf66b86930d0e",
+      "size": 6998
+    },
+    {
+      "path": "ai/contracts/code_change.yml",
+      "sha256": "37b9b82378932fb6801f9a095ead27f29749148f6463e0246226ea6c0af6d9cc",
+      "size": 3860
+    },
+    {
+      "path": "ai/evals/test_fake_certainty.py",
+      "sha256": "9297ea4a86fa5124db10c6b1124cc5ea4db5a1ea3518e4538d6b36d66d2464c7",
+      "size": 4634
+    },
+    {
+      "path": "ai/evals/test_safety_gate.py",
+      "sha256": "946da942a3773540df24da9a406f1077c01db5503a614c4bb8f2893f8ec74a24",
+      "size": 7409
+    },
+    {
+      "path": "ai/knowledge/graph.yml",
+      "sha256": "e02c3127cac8e086f39a2796a6d4cc1738350f26a3f4e592a3432e735e46eda9",
+      "size": 6781
+    },
+    {
+      "path": "ai/knowledge/vector-store.yml",
+      "sha256": "b28cfc6fa8dda781adcd95c3b30ff870a5349d8e8e7918bba471181ede9ff346",
+      "size": 732
+    },
+    {
+      "path": "ai/router.yml",
+      "sha256": "fd957e5a092f91e67a6b7c6d118029c30cf2162b9caa39dcf946c6585f8fa81d",
+      "size": 7990
+    },
+    {
+      "path": "ai/tool-registry.yml",
+      "sha256": "39b4913521b37d25c61780c7c771ffc3c9f8bac5818f05cc0ec0d93bdb5591bb",
+      "size": 5160
+    },
+    {
+      "path": "docs/ai/wiki/data-redaction-rules.md",
+      "sha256": "57fe70a7ab0f1e8e88b617fb719197a1992bd0f3ab6cd006fd5916d9497aaf7c",
+      "size": 1477
+    },
+    {
+      "path": "docs/ai/wiki/private-ai-boundaries.md",
+      "sha256": "8b6f4037a97f3cde252bb23f83f15ea6f9949aeb0d717593cccb0fac80924873",
+      "size": 1612
+    },
+    {
+      "path": "docs/ai/wiki/publishing-checklist.md",
+      "sha256": "7a92a93100f9668dd93dad6be1bacfaa87e1a34558a0bb0dfdba2cb97b447e03",
+      "size": 1543
+    },
+    {
+      "path": "docs/ai/wiki/review-preferences.md",
+      "sha256": "7dbfd7a826903b18c0fb2828d8a8db88ed34f2433143fc9439f5dbff0ef38f99",
+      "size": 1696
+    },
+    {
+      "path": "docs/ai/wiki/source-trust-ladder.md",
+      "sha256": "d5e3d5adaa1291b696ec63b7853d51da8928fa3b7b75558c0dd4e159cef2b248",
+      "size": 1914
+    },
+    {
+      "path": "scripts/audit-log.py",
+      "sha256": "33545156ff408f22c74f393e8f8a617a26d601831ecd080958f3c092385b9a5a",
+      "size": 3638
+    },
+    {
+      "path": "scripts/build-ai-vector-index.py",
+      "sha256": "19087a77d999ecef657828875f2d0a67a15d5315e7ee74086bc1406656fe9f8d",
+      "size": 7544
+    },
+    {
+      "path": "scripts/check-ai-stack.py",
+      "sha256": "9138c8a50a5053c6e6db451509ecfabbae916e294b6f748f679bf817341bd2ed",
+      "size": 7841
+    }
+  ]
+}

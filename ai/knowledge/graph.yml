@@ -1,0 +1,249 @@
+# ai/knowledge/graph.yml — Explicit knowledge graph of the AI engineering stack
+# Describes how each component of the AI stack relates to the others.
+# Checked by scripts/check-ai-stack.py.
+
+version: 1
+
+nodes:
+  - id: agents_md
+    type: contract
+    label: "AGENTS.md"
+    path: AGENTS.md
+    description: "Root entry point — mandatory workflow, code style, AI engineering contract."
+
+  - id: router
+    type: router
+    label: "ai/router.yml"
+    path: ai/router.yml
+    description: "Task classification router — tools, context, exit criteria per task class."
+
+  - id: tool_registry
+    type: registry
+    label: "ai/tool-registry.yml"
+    path: ai/tool-registry.yml
+    description: "Verified tools available to the router."
+
+  - id: code_change_contract
+    type: contract
+    label: "ai/contracts/code_change.yml"
+    path: ai/contracts/code_change.yml
+    description: "Code change contract — MUST/FORBIDDEN rules."
+
+  - id: fake_certainty_eval
+    type: eval
+    label: "ai/evals/test_fake_certainty.py"
+    path: ai/evals/test_fake_certainty.py
+    description: "Eval: no fake certainty — assertions need evidence."
+
+  - id: safety_eval
+    type: eval
+    label: "ai/evals/test_safety_gate.py"
+    path: ai/evals/test_safety_gate.py
+    description: "Eval: safety gate — secrets, destructive ops, risk."
+
+  - id: pr_template
+    type: template
+    label: ".github/pull_request_template.md"
+    path: .github/pull_request_template.md
+    description: "PR template — AI disclosure, files, tests, CI, risk, rollback, knowledge."
+
+  - id: pr_agent
+    type: workflow
+    label: ".github/workflows/pr_agent.yml"
+    path: .github/workflows/pr_agent.yml
+    description: "PR-Agent GitHub Action — automated AI review via GLM-5.2."
+
+  - id: ci
+    type: workflow
+    label: ".github/workflows/ci.yml"
+    path: .github/workflows/ci.yml
+    description: "CI workflow — test, ai-evals, lint, ai-stack-enforcement."
+
+  - id: vector_store
+    type: knowledge
+    label: "ai/knowledge/vector-store.yml"
+    path: ai/knowledge/vector-store.yml
+    description: "Repo-local vector DB config — SQLite, local-hashing embeddings."
+
+  - id: knowledge_graph
+    type: knowledge
+    label: "ai/knowledge/graph.yml"
+    path: ai/knowledge/graph.yml
+    description: "This file — explicit relationships across the AI stack."
+
+  - id: audit_log
+    type: audit
+    label: "scripts/audit-log.py → .ai/ai_runs.jsonl"
+    path: scripts/audit-log.py
+    description: "Append-only audit trail for every autonomous AI run."
+
+  # ── gstack full-loop skills (spec/plan -> build -> review -> QA/health -> ship -> canary/docs) ──
+  - id: gstack_spec
+    type: gstack_skill
+    label: "gstack /spec"
+    path: skill:gstack-spec
+    description: "Turn vague intent into an executable spec / backlog-ready issue (spec phase)."
+
+  - id: gstack_plan_eng_review
+    type: gstack_skill
+    label: "gstack /plan-eng-review"
+    path: skill:gstack-plan-eng-review
+    description: "Engineering manager plan review before implementation (plan phase)."
+
+  - id: gstack_investigate
+    type: gstack_skill
+    label: "gstack /investigate"
+    path: skill:gstack-investigate
+    description: "Systematic root-cause debugging before fixes (build phase)."
+
+  - id: gstack_health
+    type: gstack_skill
+    label: "gstack /health"
+    path: skill:gstack-health
+    description: "Code quality dashboard and health checks before landing (health phase)."
+
+  - id: gstack_ship
+    type: gstack_skill
+    label: "gstack /ship"
+    path: skill:gstack-ship
+    description: "Release engineering: tests + coverage + clean PR (ship phase)."
+
+  - id: gstack_land_and_deploy
+    type: gstack_skill
+    label: "gstack /land-and-deploy"
+    path: skill:gstack-land-and-deploy
+    description: "Merge, deploy, wait for CI, and verify deployment when configured (land phase)."
+
+  - id: gstack_canary
+    type: gstack_skill
+    label: "gstack /canary"
+    path: skill:gstack-canary
+    description: "Post-deploy canary monitoring (canary phase)."
+
+  - id: gstack_document_release
+    type: gstack_skill
+    label: "gstack /document-release"
+    path: skill:gstack-document-release
+    description: "Post-ship documentation update (docs phase)."
+
+edges:
+  # AGENTS.md enforces and loads context
+  - from: agents_md
+    to: code_change_contract
+    rel: enforces
+  - from: agents_md
+    to: router
+    rel: loads_context
+  - from: agents_md
+    to: tool_registry
+    rel: loads_context
+
+  # Router mandates knowledge retrieval and loads contracts
+  - from: router
+    to: code_change_contract
+    rel: loads_context
+  - from: router
+    to: vector_store
+    rel: loads_context
+  - from: router
+    to: knowledge_graph
+    rel: loads_context
+  - from: router
+    to: tool_registry
+    rel: references
+
+  # CI checks evals and stack structure
+  - from: ci
+    to: fake_certainty_eval
+    rel: checks
+  - from: ci
+    to: safety_eval
+    rel: checks
+  - from: ci
+    to: knowledge_graph
+    rel: checks
+  - from: ci
+    to: vector_store
+    rel: checks
+
+  # PR-Agent reviews PRs described by the template
+  - from: pr_agent
+    to: pr_template
+    rel: reviews
+
+  # Vector store indexes source files
+  - from: vector_store
+    to: agents_md
+    rel: indexes
+  - from: vector_store
+    to: router
+    rel: indexes
+  - from: vector_store
+    to: tool_registry
+    rel: indexes
+  - from: vector_store
+    to: code_change_contract
+    rel: indexes
+  - from: vector_store
+    to: fake_certainty_eval
+    rel: indexes
+  - from: vector_store
+    to: safety_eval
+    rel: indexes
+  - from: vector_store
+    to: pr_template
+    rel: indexes
+
+  # Audit log records runs dispatched by the router
+  - from: audit_log
+    to: router
+    rel: records
+
+  # Router routes to gstack full-loop skills
+  - from: router
+    to: gstack_spec
+    rel: routes_to
+  - from: router
+    to: gstack_plan_eng_review
+    rel: routes_to
+  - from: router
+    to: gstack_investigate
+    rel: routes_to
+  - from: router
+    to: gstack_health
+    rel: routes_to
+  - from: router
+    to: gstack_ship
+    rel: routes_to
+  - from: router
+    to: gstack_land_and_deploy
+    rel: routes_to
+  - from: router
+    to: gstack_canary
+    rel: routes_to
+  - from: router
+    to: gstack_document_release
+    rel: routes_to
+
+  # gstack skills connect to CI, PR template, and the code-change contract
+  - from: gstack_plan_eng_review
+    to: code_change_contract
+    rel: enforces
+  - from: gstack_investigate
+    to: code_change_contract
+    rel: respects
+  - from: gstack_health
+    to: ci
+    rel: runs_against
+  - from: gstack_ship
+    to: ci
+    rel: waits_on
+  - from: gstack_ship
+    to: pr_template
+    rel: produces
+  - from: gstack_land_and_deploy
+    to: ci
+    rel: waits_on
+  - from: gstack_document_release
+    to: pr_template
+    rel: documents

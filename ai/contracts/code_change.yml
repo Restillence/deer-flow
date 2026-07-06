@@ -1,0 +1,79 @@
+# ai/contracts/code_change.yml — Contract for all code changes
+# Enforced by evals, review, and CI gates.
+
+version: 1
+
+# ─────────────────────────────────────────────────────────
+# MUST — every code change MUST satisfy these
+# ─────────────────────────────────────────────────────────
+must:
+  - id: inspect_before_write
+    rule: "Read the target file(s) and related tests BEFORE writing any code"
+    check: "git diff shows only files that were inspected first"
+
+  - id: list_changed_files
+    rule: "PR description lists every changed file with a one-line reason"
+    check: "PR body contains '## Files changed' section"
+
+  - id: tests_cover_change
+    rule: "New or updated tests cover the changed behavior"
+    check: "pytest --cov shows coverage on changed lines"
+
+  - id: call_out_risk
+    rule: "Identify DB/schema/auth/job/API risk in PR description"
+    check: "PR body contains '## Risk assessment' section"
+
+  - id: rollback_plan
+    rule: "If risk > low, include a tested forward+backward rollback plan"
+    check: "PR body contains '## Rollback' section when risk assessment is not 'low'"
+
+  - id: ci_green
+    rule: "CI must pass on the PR branch before merge"
+    check: "All required GitHub Actions checks are green"
+
+  - id: small_diff
+    rule: "Diff should be reviewable in one sitting (target < 400 lines)"
+    check: "git diff --stat totals under 400 lines (excluding lock files)"
+
+# ─────────────────────────────────────────────────────────
+# FORBIDDEN — no code change may do these
+# ─────────────────────────────────────────────────────────
+forbidden:
+  - id: no_unapproved_deps
+    rule: "Do not add new dependencies without explicit approval"
+    pattern: "pyproject.toml or requirements.txt adds a package not in the task spec"
+
+  - id: no_unrelated_files
+    rule: "Do not include unrelated changes in the same PR"
+    pattern: "diff touches files unrelated to the stated task"
+
+  - id: no_unverified_tests
+    rule: "Do not claim 'tests pass' without showing test output"
+    pattern: "PR says 'tests pass' without CI link or terminal output"
+
+  - id: no_secrets
+    rule: "No API keys, passwords, tokens, or private data in the diff"
+    pattern: "diff contains patterns like sk-, ghp_, AKIA, password=, token="
+
+  - id: no_db_migration_without_rollback
+    rule: "No DB migration without a tested rollback migration"
+    pattern: "diff adds migration file without corresponding down/rollback"
+
+  - id: no_fake_certainty
+    rule: "Do not assert facts without evidence or source link"
+    pattern: "claims like 'this is secure' or 'this won't break' without test or source"
+
+# ─────────────────────────────────────────────────────────
+# DONE WHEN — exit criteria for the task
+# ─────────────────────────────────────────────────────────
+done_when:
+  all_of:
+    - "Diff is small and reviewable"
+    - "CI is green (all required checks pass)"
+    - "Tests cover the changed behavior"
+    - "Risk areas identified with rollback plan"
+    - "No secrets or private data in diff"
+    - "Human review requested via PR"
+  any_of:
+    - "Code review approved by a human"
+    - "Code review approved by gstack_review + explicit human 'looks good'"

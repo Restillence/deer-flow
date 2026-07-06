@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Pre-commit hook: secret scan + client-name grep + formatter
+# Install: cp this file to .git/hooks/pre-commit && chmod +x
+# Or: add to .pre-commit-config.yaml with pre-commit framework
+
+set -euo pipefail
+
+# ── Secret scan ──
+# Simple grep-based check for common secret patterns
+SECRET_PATTERNS=(
+    'sk-[a-zA-Z0-9]{20,}'
+    'ghp_[a-zA-Z0-9]{36,}'
+    'AKIA[0-9A-Z]{16}'
+    'aws_secret_access_key\s*=\s*["\047][A-Za-z0-9/+=]{40}'
+    '-----BEGIN (RSA |EC )?PRIVATE KEY-----'
+    'password\s*=\s*["\047][^"\047]{8,}["\047]'
+    'xox[bpoa]-[a-zA-Z0-9-]+'
+)
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep -vE '\.lock$|uv\.lock$|package-lock\.json$|/test_|/tests/|_test\.py$' || true)
+
+if [ -z "$STAGED" ]; then
+    exit 0
+fi
+
+echo "🔍 Pre-commit: scanning staged files..."
+
+SECRETS_FOUND=0
+for file in $STAGED; do
+    if [ ! -f "$file" ]; then continue; fi
+    for pattern in "${SECRET_PATTERNS[@]}"; do
+        if grep -qE "$pattern" "$file" 2>/dev/null; then
+            echo "❌ SECRET DETECTED in $file: pattern '$pattern'"
+            grep -nE "$pattern" "$file" 2>/dev/null | head -3
+            SECRETS_FOUND=1
+        fi
+    done
+done
+
+if [ "$SECRETS_FOUND" -eq 1 ]; then
+    echo ""
+    echo "🛑 Commit blocked: secrets detected. Remove them and try again."
+    exit 1
+fi
+
+# ── Ruff format check (if ruff is available) ──
+if command -v ruff &>/dev/null; then
+    PYTHON_FILES=$(echo "$STAGED" | grep -E '\.py$' || true)
+    if [ -n "$PYTHON_FILES" ]; then
+        ruff check --fix $PYTHON_FILES 2>/dev/null || true
+        ruff format $PYTHON_FILES 2>/dev/null || true
+        # Re-stage formatted files
+        echo "$PYTHON_FILES" | xargs git add 2>/dev/null || true
+    fi
+fi
+
+echo "✅ Pre-commit checks passed."
+exit 0

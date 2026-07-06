@@ -1,0 +1,34 @@
+# .pr_agent.toml — PR-Agent configuration for content-ecosystem
+# Aligns with ai/contracts/code_change.yml and ai/evals/
+
+[config]
+model = "openai/glm-5.2"
+fallback_models = ["openai/glm-5.1", "openai/glm-4.5-flash"]
+custom_model_max_tokens = 131072
+
+[pr_reviewer]
+# Mirror our contract rules from ai/contracts/code_change.yml
+extra_instructions = """
+Focus on: security vulnerabilities, missing tests, unsafe migrations, fake certainty claims.
+Check for: secrets/tokens in diff, DB migrations without rollback, hardcoded passwords.
+Flag: 'tests pass' without evidence, 'this is secure' without audit, 'won't break' without proof.
+Enforce: small diffs (<400 lines), risk assessment, rollback plan for non-low-risk changes.
+Python 3.12+ project — check type hints, modern generics (list[str] not List[str]).
+"""
+require_tests_review = true
+require_canonical_filter = true
+
+[pr_code_suggestions]
+num_code_suggestions = 6
+suggestions_score_threshold = 6
+
+[pr_description]
+# Auto-generate structured PR descriptions
+generate_ai_title = true
+enable_pr_diagram = true
+
+[github_action_config]
+auto_review = true
+auto_describe = true
+auto_improve = true
+pr_actions = ["opened", "reopened", "ready_for_review"]

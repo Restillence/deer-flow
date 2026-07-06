@@ -1,0 +1,163 @@
+# ai/tool-registry.yml — Verified tools available to router.yml
+# Each tool here MUST be installable and working on this VM.
+# If a tool is missing/broken, router.yml must NOT reference it.
+
+version: 1
+
+tools:
+  # ── Coding agents ──
+  opencode:
+    status: present
+    binary: /usr/local/bin/opencode
+    version: "1.17.11"
+    mode: headless
+    note: "Fallback/special-purpose coding agent. Spawn via: opencode run '<task>'"
+
+  claude_code:
+    status: present
+    binary: /home/yvonne_otto702/.local/bin/claude
+    version: "2.1.197"
+    mode: headless
+    note: "Primary long-context repo work. Run: claude -p '<task>'"
+    auth: "Requires Claude Pro/Max login: claude login"
+
+  codex:
+    status: present
+    binary: /usr/bin/codex
+    version: "0.142.3"
+    mode: headless
+    note: "Focused execution, verification, and diff review loops. Already in OpenClaw models.json as gpt-5.4"
+    auth: "Requires ChatGPT login: codex login"
+
+  # ── gstack skills ──
+  gstack_review:
+    status: present
+    skill: gstack-review
+    note: "Staff-engineer code review. Spawn: opencode run '/review'"
+
+  gstack_qa:
+    status: present
+    skill: gstack-qa
+    note: "Browser-based QA. Requires running server"
+
+  gstack_ship:
+    status: present
+    skill: gstack-ship
+    note: "Release engineering: tests + coverage + clean PR"
+
+  # ── gstack full-loop skills (spec/plan -> build -> review -> QA/health -> ship -> canary/docs) ──
+  gstack_spec:
+    status: present
+    skill: gstack-spec
+    note: "Turn vague intent into an executable spec/backlog-ready issue."
+
+  gstack_plan_eng_review:
+    status: present
+    skill: gstack-plan-eng-review
+    note: "Engineering manager plan review before implementation."
+
+  gstack_plan_ceo_review:
+    status: present
+    skill: gstack-plan-ceo-review
+    note: "Founder/CEO scope and strategy review for ambiguous work."
+
+  gstack_investigate:
+    status: present
+    skill: gstack-investigate
+    note: "Systematic root-cause debugging before fixes."
+
+  gstack_health:
+    status: present
+    skill: gstack-health
+    note: "Code quality dashboard and health checks before landing."
+
+  gstack_land_and_deploy:
+    status: present
+    skill: gstack-land-and-deploy
+    note: "Merge, deploy, wait for CI, and verify deployment when configured."
+
+  gstack_canary:
+    status: present
+    skill: gstack-canary
+    note: "Post-deploy canary monitoring."
+
+  gstack_document_release:
+    status: present
+    skill: gstack-document-release
+    note: "Post-ship documentation update."
+
+  gstack_autoplan:
+    status: present
+    skill: gstack-autoplan
+    note: "Full auto-review pipeline across CEO/design/engineering/devex perspectives."
+
+  # ── Research ──
+  web_search:
+    status: present
+    note: "Perplexity substitute. OpenClaw built-in web_search tool"
+
+  web_fetch:
+    status: present
+    note: "Primary source puller. OpenClaw built-in web_fetch tool"
+
+  # ── Browser ──
+  playwright:
+    status: present
+    binary: ~/.cache/ms-playwright/
+    note: "E2E tests + UI proof. Chromium headless installed"
+
+  # ── CI ──
+  github_actions:
+    status: present
+    note: "CI runs on push/PR. Workflows in .github/workflows/ci.yml"
+
+  # ── Memory ──
+  gbrain:
+    status: present
+    note: "v0.42.53.0, PGLite, voyage-3-large (1024d). Global VM gbrain is available for live sessions; CI enforces the repo-local vector freshness mirror via scripts/check-gbrain-freshness.py. Requires ~/.bun/bin on PATH."
+    binary: /home/yvonne_otto702/.bun/bin/gbrain
+
+  memory_search:
+    status: present
+    note: "OpenClaw built-in. Voyage-3-large embeddings over memory/*.md. Auto-rebuilds on index drift."
+
+  openclaw_rag:
+    status: present
+    note: "OpenClaw built-in memory_search + gbrain query. Pre-fetch context before task dispatch."
+    commands:
+      - "memory_search '<query>' — semantic search over memory/*.md"
+      - "gbrain query '<question>' — hybrid search over brain pages"
+
+  # ── Repo-local knowledge ──
+  repo_vector_db:
+    status: present
+    path: .ai/vector/index.sqlite
+    note: "Repo-local SQLite vector index. Built by scripts/build-ai-vector-index.py. Checked by CI (ai-stack-enforcement job)."
+    builder: scripts/build-ai-vector-index.py
+
+  knowledge_graph:
+    status: present
+    path: ai/knowledge/graph.yml
+    note: "Explicit knowledge graph of the AI stack. Checked by scripts/check-ai-stack.py."
+
+  # ── Conductor substitute ──
+  git_worktree:
+    status: present
+    note: "Native git worktree for parallel agent isolation (Conductor is macOS-only)"
+
+  # ── Tools NOT available (do not reference in router.yml) ──
+  perplexity:
+    status: missing
+    note: "No API key. Substituted by web_search + web_fetch (OpenClaw built-in)"
+
+  copilot:
+    status: unverified
+    note: "GitHub Copilot — needs subscription check"
+
+  pr_agent:
+    status: present
+    note: "Open-source PR review (CodeRabbit alternative). Runs as GitHub Action. GLM-5.2 primary, GLM-5.1/4.5-Flash fallbacks via ZAI. Config: .pr_agent.toml"
+
+  conductor:
+    status: unavailable
+    note: "macOS only. Substituted by git_worktree"

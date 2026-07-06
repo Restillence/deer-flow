@@ -1,0 +1,168 @@
+# ai/router.yml — Task classification router
+# Portable: works for any Python/uv monorepo. Copy ai/ to another repo to reuse.
+#
+# Every tool referenced here MUST exist and be verified. See ai/tool-registry.yml.
+
+version: 1
+
+# ─────────────────────────────────────────────────────────
+# TASK CLASSES — each defines tools, context, exit criteria
+# ─────────────────────────────────────────────────────────
+task_classes:
+
+  code_change:
+    description: "Modify source code: bug fix, feature, refactor"
+    classify_when:
+      - "user requests a bug fix, feature, or refactor"
+      - "diff changes files under packages/*/src/ or apps/"
+    tools:
+      - openclaw_rag              # knowledge retrieval before task
+      - claude_code               # primary long-context repo implementation/review
+      - codex                     # focused execution, verification, and diff review
+      - gstack_spec               # turn vague intent into an executable spec
+      - gstack_plan_eng_review    # engineering plan review for non-trivial work
+      - gstack_investigate        # systematic root-cause debugging before fixes
+      - gstack_review             # staff-eng review after build
+      - gstack_health             # code-quality dashboard / health check before PR
+      - gstack_qa                 # browser QA if UI-facing
+      - gstack_ship               # release engineering: tests + clean PR
+      - github_actions            # CI gate
+      - opencode                  # fallback/special-purpose coding agent
+    context:
+      - "ai/contracts/code_change.yml"
+      - "AGENTS.md"
+      - "docs/ai/wiki/review-preferences.md"
+      - "relevant source files (outline + snippets, not whole files)"
+      - "ai/knowledge/vector-store.yml"
+      - "ai/knowledge/graph.yml"
+    exit_criteria:
+      - "All existing tests pass"
+      - "New tests cover the changed behavior"
+      - "Ruff lint clean on changed files"
+      - "CI is green on the PR branch"
+      - "Diff is small and reviewable"
+      - "Risk areas identified (DB/auth/job/API) with rollback plan"
+      - "No secrets or private data in diff"
+      - "Human review requested via PR"
+      - "Plan reviewed with gstack_plan_eng_review for non-trivial work or explicitly marked N/A"
+      - "Health check run via gstack_health before PR or explicitly marked N/A"
+      - "Ship path selected via gstack_ship or explicitly deferred"
+      - "Knowledge context refreshed via memory_search/gbrain query, or explicitly marked N/A"
+
+  dependency_bump:
+    description: "Upgrade, add, or remove dependencies"
+    classify_when:
+      - "user requests a version bump or dependency change"
+      - "diff changes pyproject.toml, uv.lock, requirements.txt, or package.json"
+    tools:
+      - openclaw_rag              # knowledge retrieval before task
+      - claude_code               # long-context dependency compatibility review
+      - codex                     # focused lockfile/test execution
+      - gstack_plan_eng_review    # dependency risk review before bump
+      - gstack_review
+      - gstack_health             # health check before PR
+      - gstack_ship               # release engineering
+      - github_actions
+      - opencode                  # fallback/special-purpose coding agent
+    context:
+      - "ai/contracts/code_change.yml"
+      - "pyproject.toml / uv.lock diff"
+      - "CHANGELOG or release notes of the dependency"
+      - "ai/knowledge/vector-store.yml"
+      - "ai/knowledge/graph.yml"
+    exit_criteria:
+      - "All existing tests pass"
+      - "No new security advisories (pip-audit / safety)"
+      - "Lock file updated and committed"
+      - "Breaking changes documented in PR"
+      - "Dependency risk reviewed with gstack_plan_eng_review or explicitly marked N/A"
+      - "Health check run via gstack_health before PR"
+      - "CI is green"
+      - "Knowledge context refreshed via memory_search/gbrain query, or explicitly marked N/A"
+
+  ui_change:
+    description: "Frontend or visual changes"
+    classify_when:
+      - "user requests UI/UX changes"
+      - "diff changes *.html, *.css, *.tsx, *.jsx, *.vue, or templates/"
+    tools:
+      - openclaw_rag             # knowledge retrieval before task
+      - claude_code              # primary long-context UI implementation/review
+      - codex                    # focused patch/test loops
+      - gstack_spec              # spec UI intent before building
+      - gstack_plan_eng_review   # plan review for UI work
+      - gstack_qa                # browser-based QA
+      - playwright               # E2E smoke test
+      - gstack_review
+      - gstack_health            # health check before PR
+      - gstack_ship              # release engineering
+      - github_actions
+      - opencode                 # fallback/special-purpose coding agent
+    context:
+      - "ai/contracts/code_change.yml"
+      - "docs/ai/wiki/review-preferences.md"
+      - "screenshots of before/after"
+      - "ai/knowledge/vector-store.yml"
+      - "ai/knowledge/graph.yml"
+    exit_criteria:
+      - "E2E test covers the changed flow"
+      - "Screenshots attached to PR (desktop + mobile)"
+      - "No console errors in browser session"
+      - "CI is green"
+      - "Human visual review requested"
+      - "Browser QA run via gstack_qa or explicitly marked N/A"
+      - "Visual/user-flow risk reviewed before merge"
+      - "Knowledge context refreshed via memory_search/gbrain query, or explicitly marked N/A"
+
+  docs_or_blog:
+    description: "Documentation, blog posts, README updates"
+    classify_when:
+      - "user requests docs, README, blog, or changelog update"
+      - "diff changes only *.md files"
+    tools:
+      - openclaw_rag        # knowledge retrieval before task
+      - web_search              # research / primary source discovery
+      - web_fetch               # pull primary sources
+      - claude_code             # long-context repo/doc editing
+      - codex                   # focused edit/build/link-check loops
+      - gstack_spec             # spec the doc/post scope before writing
+      - gstack_review           # editorial review
+      - gstack_document_release # post-ship docs sync
+      - opencode                # fallback/special-purpose prose agent
+    context:
+      - "docs/ai/wiki/publishing-checklist.md"
+      - "docs/ai/wiki/source-trust-ladder.md"
+      - "ai/knowledge/vector-store.yml"
+      - "ai/knowledge/graph.yml"
+    exit_criteria:
+      - "All claims link to a primary source (trust level ≤ 3)"
+      - "No private/client data in content"
+      - "Markdown renders correctly"
+      - "Link check passes (no broken links)"
+      - "Human editorial review requested"
+      - "Docs release impact checked with gstack_document_release or explicitly marked N/A"
+      - "Knowledge context refreshed via memory_search/gbrain query, or explicitly marked N/A"
+
+# ─────────────────────────────────────────────────────────
+# ROUTING RULES — run before any tool action
+# ─────────────────────────────────────────────────────────
+routing:
+  - step: classify
+    into: task_classes
+    on_match: first_wins
+
+  - step: load_context
+    from: task_class.context
+    strategy: outline_plus_snippets  # never whole files
+
+  - step: execute
+    with_tools: task_class.tools
+    non_interactive: true            # spawned sessions never block
+
+  - step: verify
+    against: task_class.exit_criteria
+    block_on_failure: true
+
+  - step: request_review
+    via: github_pr
+    note: "AI-generated — human review required before merge"
